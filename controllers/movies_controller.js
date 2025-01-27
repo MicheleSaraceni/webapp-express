@@ -14,20 +14,37 @@ function index(req, res) {
     })
 }
 
-function show(req, res) {
+const show = (req, res) => {
+
     const id = parseInt(req.params.id)
-    const sql = ("SELECT * FROM movies WHERE id = ?")
+    const sql = `SELECT movies.*, AVG(reviews.vote) AS vote_avarage FROM movies
+    JOIN reviews ON movies.id = reviews.movie_id
+    WHERE movies.id = ?`
     connection.query(sql, [id], (err, results) => {
-        if (err) return res.status(500).json({
-            error: "Database quesy failed!"
-        })
+
+        if (err)
+            return res.status(500).json({ error: err })
+
+        if (!results[0])
+            return res.status(404).json({ error: "element not found" })
+
         if (results[0]) {
-            console.log(results[0]);
-            return res.json(results[0]);
-        } else {
-            return res.status(500).json({ error: "Movie is not found!" })
+            const sql2 = `SELECT reviews.* FROM reviews
+            WHERE movie_id = ?`;
+            const item = results[0]
+            connection.query(sql2, [id], (err, results2) => {
+
+                if (err)
+                    return res.status(500).json({ error: err })
+
+                item.reviews = results2
+                return res.json({ item: item, reviews: reviews })
+
+            })
         }
+
     })
+
 }
 
 function destroy(req, res) {
