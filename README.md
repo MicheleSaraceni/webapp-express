@@ -3,91 +3,91 @@
 ## Step 1 - Scaffolding
 
 ```bash
-# clone repository
-# add package-lock.json to .gitignore
+# clono la repository
+# aggiungo package-lock.json to .gitignore
 # edit README.md
 
-# create file server.js
+# creo il file server.js
 ni server.js
 
 #init
 npm init -y
 
-# create env file
+# create env file e lo aggiungo al .gitignore
 ni .env
 
-# add in env PORT = 3000 etc
-PORT=3000
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=root
-DB_NAME=books_db
+# aggiungo nel file .env : 
 
-# configure package json with dev and start script (env e watch)
+PORT=3000 # La porta del mio server
+DB_HOST=localhost # L'host del mio db sql
+DB_USER=root # L'utente principale che accede al mio db sql
+DB_PASSWORD=root # La password del mio db sql
+DB_NAME=books_db # Il nome del mio db sql
 
+# configuro nel package.json il dev e lo start nello script (env e watch [ --env-file=.env --watch ])
 ```
 
 ```json
 "scripts": {
-    "start": "node --env-file=.env server.js",
+    //"start": "node --env-file=.env server.js",
     "dev": "node --env-file=.env --watch server.js"
   }
 ```
 
 ```bash
-# install express
+# installo express per similare un server
 npm install express
-
 ```
 
 ```bash
-    # per cors
+    # Installo cors per eliminare le restrizioni sul frontend dal backend e dare le autorizzazioni a chi puo accedervi
     npm install cors
 ```
 
 ```bash
-    # per mysql
+    # Installo mysql per accedere ed utilizzare il mio db
     npm install mysql2
 ```
 
 ```javascript
-// import express in server js
+// Importo express nel server.js
 const express = require("express");
 
-// create a server instance
-const app = express();
+// Creo un istanza del server
+const server = express();
 
-// set costant to port
-const port = process.env.PORT || 3000;
+// Setto in una costante la porta per accedere al mio server
+const PORT = process.env.PORT || 3000;
 
 
-// middleware per il CORS
+// Middleware per CORS//Uso cors per autorizzare l'accesso al mio server a tutti sulla rete non passando parametri nelle ()
+server.use(cors());
+//Nel caso volessi dare autorizzazione solo ad una porta specifica potrei inserire ad esempio:
 const cors = require("cors"); 👈
-app.use(cors({
+server.use(cors({
   origin: 'localhost: http://localhost:5173' 👈
 }));
 
 
 //Other imports
 
-//define static assets path
-// create public directory inside root directory mkdir public
-app.use(express.static("public"));
+//Definisco un asset statico e creo una directory pubblica nella root directory mkdir (cartella principale) pubblica
+server.use(express.static("public"));
 
-// register body-parser for "application/json"
-app.use(express.json()); 👈
+// Permette di leggere dati JSON e convertirli in oggetti JavaScript cosi da poter essere recuperati dal req.body
+server.use(express.json());
 
 
-//add root route
-app.get("/", (req, res) => {
+//Aggiungo la rotta principale
+server.get("/", (req, res) => {
   res.send("Home Page");
 });
 
 //other routes
 
 
-//server must listen on your host and your port
-app.listen(port,  () => {
+//Metto in ascolto il server sul pio host e sulla mia porta
+server.listen(port,  () => {
     console.log(`Server is running on http://localhost:${port}}`);
 });
 
@@ -100,48 +100,170 @@ npm run dev
 ```
 
 ```bash
-# make other directories
+# Creo le varie cartelle che userò
 mkdir routes
-mkdir middlewares
 mkdir controllers
+
+mkdir middlewares
 mkdir classes
 mkdir models
-
 
 # create models data
  cd models
  ni examples.js
 
-# make example controller
+# Creo il mio controller nella cartella controllers in cui andro a definire le varie chiamate al server (index, show, store, update, modify e destroy)
 cd controllers
 ni exampleController.js
 ```
 
-## Step 2 - Controller and Routing
+## Step 2 - Connection, Controller and Routing
+
+- Connection
+
+```javascript
+//Creiamo un file 
+db_connection.js 
+
+//Al suo interno andiamo a definire la connessione con il nostro db
+import mysql from "mysql2"
+
+const connection = mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
+})
+
+connection.connect((err) => {
+    if (err) throw err;
+    console.log("Connected to MySQL Database!")
+})
+
+export default connection;
+
+```
+
+- Routes
+
+```bash
+ # Creo un file per le mie rotte .js
+nome_router.js
+```
+
+```javascript
+//in routes/nome_router.js
+
+// importo express
+const express = require('express')
+
+//Creo un istanza per il router in  una costante
+const router = express.Router()
+
+//Importo le funzioni presenti nel controller(definite piu avanti)
+const {
+  index,
+  show,
+  store,
+  update,
+  destroy,
+} = require('../controllers/nome_Controller.js')
+
+//Rotte
+
+// Index - Read all
+//Metodo GET = INDEX
+router.get('/', index)
+
+// Show - Read one
+//Metodo GET + ID = SHOW
+router.get('/:id', show)
+
+//Store - Create
+//Metodo POST = STORE
+router.post('/', store)
+
+//Update - Update totale
+//Metodo PUT + ID = UPDATE
+router.put('/:id', update)
+
+// Modify - Update (partial)
+// router.patch("/:id", (req, res) => {
+//   res.send("Modifica parziale item con id: " + req.params.id);
+// });
+
+// Destroy - Delete
+//Metodo DELETE = DESTROY
+router.delete('/:id', destroy)
+
+//esport router
+module.exports = router
+```
+
+```javascript
+// in server.js
+
+//Importo il router
+const router = require('./routes/nome_router.js')
+
+// aggiungo il middelware del router e la sua rotta
+server.use('/nome', router)
+
+```
 
 - Controller
 
 ```javascript
-// import model  in controller
-const examples = require('../models/examples.js')
+// importo la connessione al db
+import connection from "../db_connection.js"
 
+//Ora definiamo le varie funzioni di chiamata al nostro server con relative Query
+
+
+
+//INDEX
 function index(req, res) {
-  const response = {
-    totalCount: menu.length,
-    data: [...examples],
-  }
-  res.json(response)
+    //Salvo la Query nella const sql
+    //QUERY - Seleziomo tutti gli elementi dalla tabella nel db
+    const sql = ("SELECT * FROM nome_tabella")
+
+    connection.query(sql, (err, results) => {
+        //se si presenta un errore nella connessione setto uno status di errore 500 e restituisco un json con un messaggio di errore
+        if (err) return res.status(500).json({
+            error: "Database query failed!"
+        })
+        //se la connessione va a buon fine stampo in console il risultato e restituisco un json con il numero di elementi e la lista dei vari elementi
+        console.log(results);
+        res.json({
+            lenght: results.length,
+            items: results
+        });
+    })
 }
 
-function show(req, res) {
-  const id = parseInt(req.params.id)
-  const item = examples.find((item) => item.id === id)
-  if (!item) {
-    throw new CustomError('La pizza non esiste', 404)
-  }
-  res.json({ success: true, item })
+//SHOW
+const show = (req, res) => {
+    //Recupero l'id dell'elemento da trovare dal parametro nella URL
+    const id = parseInt(req.params.id)
+    //Salvo la Query nella const sql
+    //QUERY - Seleziona l'elemento corrispondente all'id dalla tabella nel db
+    const sql = `SELECT * FROM nome_tabella WHERE id = ?`
+    connection.query(sql, [id], (err, results) => {
+        //se si presenta un errore nella connessione setto uno status di errore 500 e restituisco un json con un messaggio di errore
+        if (err)
+            return res.status(500).json({
+            error: "Database query failed!"
+        })
+        //Se nell'arrey del risultato all'indice 0 (il primo) non ci sono elementi setto uno status di errore 404 e restituisco un json con un messaggio di errore
+        if (!results[0])
+            return res.status(404).json({ error: "Element not found" })
+
+            //Se la connessione va a buon fine e l'elemento viene trovato restituisco un json dell'elemento 
+            return res.json(results)
+     })
 }
 
+//STORE
 function store(req, res) {
   let newId = 0
   for (let i = 0; i < menu.length; i++) {
@@ -179,89 +301,29 @@ function update(req, res) {
   //console.log(examples);
   res.json(item)
 }
+
+//DESTROY
 function destroy(req, res) {
-  const id = parseInt(req.params.id)
-  const index = example.findIndex((item) => item.id === id)
-  if (index !== -1) {
-    menu.splice(index, 1)
-    res.sendStatus(204)
-  } else {
-    res.status(404)
-    res.json({
-      error: '404',
-      message: 'Item non trovato',
+    //Recupero l'id dell'elemento da eliminare dal parametro nella URL
+    const id = parseInt(req.params.id)
+    //Salvo la Query nella const sql
+    //QUERY - Elimino l'elemento corrispondente all'id dalla tabella nel db
+    const sql = ("DELETE FROM nome_tabella WHERE id = ?")
+    connection.query(sql, [id], (err) => {
+        //se si presenta un errore nella connessione setto uno status di errore 500 e restituisco un json con un messaggio di errore
+        if (err) return (
+            res.status(500),
+            console.log("Movie is not found!")
+        )
+        return (
+            res.status(204),
+            console.log(`Movie (id:${id}) is removed!`)
+        )
     })
-  }
 }
 
 // esporto le funzioni
 module.exports = { index, show, store, update, destroy }
-```
-
-- Routes
-
-```bash
- # creo first example route
- cd routes
- ni examples.js
-```
-
-```javascript
-//in routes/examples.js
-
-// import express
-const express = require('express')
-
-//create an instance of router
-const router = express.Router()
-
-//importfunction from controller
-const {
-  index,
-  show,
-  store,
-  update,
-  destroy,
-} = require('../controllers/exampleController')
-
-//Rotte
-
-// Index - Read all
-router.get('/', index)
-
-// Show - Read one -
-router.get('/:id', show)
-
-//Store - Create
-router.post('/', store)
-
-//Update - Update  totale
-router.put('/:id', update)
-
-// Modify - Update (partial)
-// router.patch("/:id", (req, res) => {
-//   res.send("Modifica parziale item con id: " + req.params.id);
-// });
-
-// Destroy - Delete
-router.delete('/:id', destroy)
-
-//esport router
-module.exports = router
-```
-
-```javascript
-// in server.js
-
-//Import router
-
-//Imports
-const examplesRouter = require('./routes/examples')
-
-// add router middelware to routes
-app.use('/examples', examplesRouter)
-
-//TEST WITH POSTMAN
 ```
 
 ## Step 3 - Other Middlewares
@@ -303,9 +365,9 @@ const notFound = require('./middlewares/notFound')
 
 // register middleware as last routes in server.js
 
-app.use(errorsHandler)
+server.use(errorsHandler)
 
-app.use(notFound)
+server.use(notFound)
 ```
 
 ## Step 4 - custom error

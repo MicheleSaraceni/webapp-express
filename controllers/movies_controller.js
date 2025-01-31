@@ -1,7 +1,9 @@
 import connection from "../db_connection.js"
 
 function index(req, res) {
+    //Salvo la Query nella const sql
     const sql = ("SELECT * FROM movies")
+
     connection.query(sql, (err, results) => {
         if (err) return res.status(500).json({
             error: "Database quesy failed!"
@@ -15,7 +17,6 @@ function index(req, res) {
 }
 
 const show = (req, res) => {
-
     const id = parseInt(req.params.id)
     const sql = `SELECT movies.*, AVG(reviews.vote) AS vote_avarage FROM movies
     JOIN reviews ON movies.id = reviews.movie_id
@@ -38,7 +39,7 @@ const show = (req, res) => {
                     return res.status(500).json({ error: err })
 
                 item.reviews = results2
-                return res.json({ item: item, reviews: reviews })
+                return res.json({ item: item, reviews: item.reviews })
 
             })
         }
